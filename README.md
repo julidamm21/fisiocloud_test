@@ -1,28 +1,50 @@
-# Fisiocloud — pruebas E2E
+# Fisiocloud — pruebas
 
-Pruebas punta a punta contra los microservicios vivos (vía nginx `/svc/`).
+## 1) Unitarias / API (por backend)
 
-| Archivo | Flujo |
+Misma metodología en todos los servicios:
+
+- `config/settings_test.py` → MariaDB temporal `test_<bd>`
+- `core/test_runner.py` → resumen en español
+- `core/tests.py` → `APITestCase` + JWT
+
+Dentro del contenedor, un servicio:
+
+```bash
+cd /app/backend_agendamiento
+DJANGO_SETTINGS_MODULE=config.settings_test python3 manage.py test core.tests -v 2
+```
+
+Todos los backends:
+
+```bash
+bash /app/test/run_all_unit.sh
+```
+
+## 2) E2E (servicios vivos vía nginx)
+
+Requieren `fisiocloud_setup.sh` ya corrido.
+
+| Script | Flujo |
 |---|---|
-| `test_e2e_login_cita.py` | Login (seguridad) → paciente (info-medica) → cita (agendamiento) |
+| `test_e2e_login_cita.py` | Login → paciente → cita |
+| `test_e2e_suscripcion.py` | Login → checkout → webhook |
+| `test_e2e_parametrizacion.py` | Login → catálogo tipos-documento |
+| `test_e2e_soporte.py` | Login → ticket |
+| `test_e2e_tratamiento_casa.py` | Login → plan → token → /casa/ |
+| `test_e2e_procesos.py` | Catálogo + preferencias + job 403 |
+| `test_e2e_asistente_voz.py` | Login → sesión (OK o 403 según feature) |
 
-## Requisitos
-
-- Contenedor / servidor con nginx + backends levantados (`fisiocloud_setup.sh`)
-- Usuario demo: `juan@test.com` / `Terapeuta@123456`
-
-## Cómo correr
-
-Dentro del contenedor:
+Uno:
 
 ```bash
 python3 /app/test/test_e2e_login_cita.py
 ```
 
-Desde el host (ajusta el puerto si aplica):
+Todos:
 
 ```bash
-E2E_BASE_URL=http://127.0.0.1:8089 python3 app/test/test_e2e_login_cita.py
+python3 /app/test/run_all_e2e.py
 ```
 
-Variables opcionales: `E2E_BASE_URL`, `E2E_EMAIL`, `E2E_PASSWORD`.
+Variables: `E2E_BASE_URL` (default `http://127.0.0.1`), `E2E_EMAIL`, `E2E_PASSWORD`.
